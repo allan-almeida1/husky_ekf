@@ -55,7 +55,7 @@ public:
         ros::Time current_time = ros::Time::now();
         ros::Duration elapsed_time = current_time - start_time;
         // Run for 10 seconds
-        if (elapsed_time.toSec() <= 15)
+        if (elapsed_time.toSec() <= 60)
         {
             current_gt_pos = msg->pose[1].position; // get ground truth current position
             gt_pos.push_back(current_gt_pos);       // append to gt_pos vector
@@ -73,7 +73,8 @@ public:
             cmd_vel.linear.x = 0.0;
             cmd_vel.angular.z = 0.0;
             cmd_vel_pub.publish(cmd_vel);
-            saveToFile();
+            saveToFile(gt_pos, gt_pos, gt_theta, gt_time, "/home/allan/catkin_ws/src/allan_husky/gt_data.json");
+            saveToFile(odom_pos, odom_pos, odom_theta, odom_time, "/home/allan/catkin_ws/src/allan_husky/odom_data.json");
             ros::shutdown();
         }
     }
@@ -93,8 +94,16 @@ public:
         geometry_msgs::Twist cmd_vel;
         cmd_vel.linear.x = 0.2;
         cmd_vel.angular.z = 0.2;
-        current_velocities = cmd_vel;
+        // current_velocities = cmd_vel;
         cmd_vel_pub.publish(cmd_vel);
+        double vl = cmd_vel.linear.x - (0.545 * cmd_vel.angular.z) / 2;
+        double vr = cmd_vel.linear.x + (0.545 * cmd_vel.angular.z) / 2;
+        double alpha = 0.98;
+        double xicr = 0.49;
+        double v = (alpha / 2) * (vl + vr);
+        double w = (alpha * 0.5 / xicr) * (vr - vl);
+        current_velocities.linear.x = v;
+        current_velocities.angular.z = w;
     }
 
     /**
@@ -126,90 +135,117 @@ private:
     /**
      * @brief Save the ground truth and odometry data to json files
      */
-    void saveToFile()
+    // void saveToFile()
+    // {
+    //     std::ofstream gt_file, odom_file;
+    //     gt_file.open("/home/allan/catkin_ws/src/allan_husky/gt_data.json");
+    //     if (gt_file.is_open())
+    //     {
+    //         gt_file << "[";
+    //         for (int i = 0; i < gt_pos.size(); i++)
+    //         {
+    //             if (i == gt_pos.size() - 1)
+    //                 gt_file << "{\"x\": " << gt_pos[i].x << ", \"y\": "
+    //                         << gt_pos[i].y << ", \"theta\": " << gt_theta[i] << ", \"timestamp\": " << gt_time[i].toSec() << "}";
+    //             else
+    //             {
+    //                 gt_file << "{\"x\": " << gt_pos[i].x << ", \"y\": "
+    //                         << gt_pos[i].y << ", \"theta\": " << gt_theta[i]
+    //                         << ", \"timestamp\": " << gt_time[i].toSec() << "},";
+    //             }
+    //         }
+    //         gt_file << "]";
+    //         gt_file.close();
+    //     }
+
+    //     odom_file.open("/home/allan/catkin_ws/src/allan_husky/odom_data.json");
+    //     if (odom_file.is_open())
+    //     {
+    //         odom_file << "[";
+    //         for (int i = 0; i < odom_pos.size(); i++)
+    //         {
+    //             if (i == odom_pos.size() - 1)
+    //                 odom_file << "{\"x\": " << odom_pos[i].x << ", \"y\": "
+    //                           << odom_pos[i].y << ", \"theta\": " << odom_theta[i]
+    //                           << ", \"timestamp\": " << odom_time[i].toSec() << "}";
+    //             else
+    //             {
+    //                 odom_file << "{\"x\": " << odom_pos[i].x << ", \"y\": "
+    //                           << odom_pos[i].y << ", \"theta\": " << odom_theta[i]
+    //                           << ", \"timestamp\": " << odom_time[i].toSec() << "},";
+    //             }
+    //         }
+    //         odom_file << "]";
+    //         odom_file.close();
+    //     }
+
+    //     std::ofstream joint_file;
+    //     joint_file.open("/home/allan/catkin_ws/src/allan_husky/joint_data.json");
+    //     if (joint_file.is_open())
+    //     {
+    //         joint_file << "[";
+    //         for (int i = 0; i < joint_states.size(); i++)
+    //         {
+    //             if (i == joint_states.size() - 1)
+    //             {
+    //                 joint_file << "{\"velocity\": {\"front_left\": "
+    //                            << joint_states[i].velocity[0] << ", \"front_right\": "
+    //                            << joint_states[i].velocity[1] << ", \"rear_left\": "
+    //                            << joint_states[i].velocity[2]
+    //                            << ", \"rear_right\": "
+    //                            << joint_states[i].velocity[3]
+    //                            << "}, \"position\": {\"front_left\": "
+    //                            << joint_states[i].position[0] << ", \"front_right\": "
+    //                            << joint_states[i].position[1] << ", \"rear_left\": "
+    //                            << joint_states[i].position[2] << ", \"rear_right\": "
+    //                            << joint_states[i].position[3] << "}, \"timestamp\": "
+    //                            << joint_states[i].header.stamp.toSec() << "}";
+    //             }
+    //             else
+    //             {
+    //                 joint_file << "{\"velocity\": {\"front_left\": "
+    //                            << joint_states[i].velocity[0] << ", \"front_right\": "
+    //                            << joint_states[i].velocity[1] << ", \"rear_left\": "
+    //                            << joint_states[i].velocity[2]
+    //                            << ", \"rear_right\": "
+    //                            << joint_states[i].velocity[3]
+    //                            << "}, \"position\": {\"front_left\": "
+    //                            << joint_states[i].position[0] << ", \"front_right\": "
+    //                            << joint_states[i].position[1] << ", \"rear_left\": "
+    //                            << joint_states[i].position[2] << ", \"rear_right\": "
+    //                            << joint_states[i].position[3] << "}, \"timestamp\": "
+    //                            << joint_states[i].header.stamp.toSec() << "},";
+    //             }
+    //         }
+    //         joint_file << "]";
+    //         joint_file.close();
+    //     }
+    // }
+
+    template <typename T>
+    void saveToFile(std::vector<geometry_msgs::Point> x_vec, std::vector<geometry_msgs::Point> y_vec,
+                    std::vector<double> theta_vec, std::vector<T> time_vec, const char *filename)
     {
-        std::ofstream gt_file, odom_file;
-        gt_file.open("/home/allan/catkin_ws/src/allan_husky/gt_data.json");
-        if (gt_file.is_open())
+        std::ofstream file;
+        file.open(filename);
+        if (file.is_open())
         {
-            gt_file << "[";
-            for (int i = 0; i < gt_pos.size(); i++)
-            {
-                if (i == gt_pos.size() - 1)
-                    gt_file << "{\"x\": " << gt_pos[i].x << ", \"y\": "
-                            << gt_pos[i].y << ", \"theta\": " << gt_theta[i] << ", \"timestamp\": " << gt_time[i].toSec() << "}";
-                else
-                {
-                    gt_file << "{\"x\": " << gt_pos[i].x << ", \"y\": "
-                            << gt_pos[i].y << ", \"theta\": " << gt_theta[i]
-                            << ", \"timestamp\": " << gt_time[i].toSec() << "},";
-                }
-            }
-            gt_file << "]";
-            gt_file.close();
-        }
+            file << "[";
 
-        odom_file.open("/home/allan/catkin_ws/src/allan_husky/odom_data.json");
-        if (odom_file.is_open())
-        {
-            odom_file << "[";
-            for (int i = 0; i < odom_pos.size(); i++)
+            for (int i = 0; i < x_vec.size(); i++)
             {
-                if (i == odom_pos.size() - 1)
-                    odom_file << "{\"x\": " << odom_pos[i].x << ", \"y\": "
-                              << odom_pos[i].y << ", \"theta\": " << odom_theta[i]
-                              << ", \"timestamp\": " << odom_time[i].toSec() << "}";
+                if (i == x_vec.size() - 1)
+                    file << "{\"x\": " << x_vec[i].x << ", \"y\": "
+                         << y_vec[i].y << ", \"theta\": " << theta_vec[i] << ", \"timestamp\": " << time_vec[i].toSec() << "}";
                 else
                 {
-                    odom_file << "{\"x\": " << odom_pos[i].x << ", \"y\": "
-                              << odom_pos[i].y << ", \"theta\": " << odom_theta[i]
-                              << ", \"timestamp\": " << odom_time[i].toSec() << "},";
+                    file << "{\"x\": " << x_vec[i].x << ", \"y\": "
+                         << y_vec[i].y << ", \"theta\": " << theta_vec[i]
+                         << ", \"timestamp\": " << time_vec[i].toSec() << "},";
                 }
             }
-            odom_file << "]";
-            odom_file.close();
-        }
-
-        std::ofstream joint_file;
-        joint_file.open("/home/allan/catkin_ws/src/allan_husky/joint_data.json");
-        if (joint_file.is_open())
-        {
-            joint_file << "[";
-            for (int i = 0; i < joint_states.size(); i++)
-            {
-                if (i == joint_states.size() - 1)
-                {
-                    joint_file << "{\"velocity\": {\"front_left\": "
-                               << joint_states[i].velocity[0] << ", \"front_right\": "
-                               << joint_states[i].velocity[1] << ", \"rear_left\": "
-                               << joint_states[i].velocity[2]
-                               << ", \"rear_right\": "
-                               << joint_states[i].velocity[3]
-                               << "}, \"position\": {\"front_left\": "
-                               << joint_states[i].position[0] << ", \"front_right\": "
-                               << joint_states[i].position[1] << ", \"rear_left\": "
-                               << joint_states[i].position[2] << ", \"rear_right\": "
-                               << joint_states[i].position[3] << "}, \"timestamp\": "
-                               << joint_states[i].header.stamp.toSec() << "}";
-                }
-                else
-                {
-                    joint_file << "{\"velocity\": {\"front_left\": "
-                               << joint_states[i].velocity[0] << ", \"front_right\": "
-                               << joint_states[i].velocity[1] << ", \"rear_left\": "
-                               << joint_states[i].velocity[2]
-                               << ", \"rear_right\": "
-                               << joint_states[i].velocity[3]
-                               << "}, \"position\": {\"front_left\": "
-                               << joint_states[i].position[0] << ", \"front_right\": "
-                               << joint_states[i].position[1] << ", \"rear_left\": "
-                               << joint_states[i].position[2] << ", \"rear_right\": "
-                               << joint_states[i].position[3] << "}, \"timestamp\": "
-                               << joint_states[i].header.stamp.toSec() << "},";
-                }
-            }
-            joint_file << "]";
-            joint_file.close();
+            file << "]";
+            file.close();
         }
     }
 
