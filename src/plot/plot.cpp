@@ -28,6 +28,7 @@ public:
     {
         model_states_sub = nh->subscribe("/gazebo/model_states", 100, &Robot::modelStatesCallback, this);
         estimated_states_sub = nh->subscribe("/dead_reckoning", 100, &Robot::estimatedStatesCallback, this);
+        est_ekf_sub = nh->subscribe("/estimated_position", 100, &Robot::estimatedEKFCallback, this);
         this->display = display;
     }
 
@@ -52,9 +53,18 @@ public:
         display->calculateError();
     }
 
+    void estimatedEKFCallback(const geometry_msgs::Twist::ConstPtr &msg)
+    {
+        double robot_x = msg->linear.x;
+        double robot_y = msg->linear.y;
+        double robot_theta = msg->angular.z;
+        display->setEKFEstimates(robot_x, robot_y, robot_theta);
+    }
+
 private:
     ros::Subscriber model_states_sub;
     ros::Subscriber estimated_states_sub;
+    ros::Subscriber est_ekf_sub;
     Display *display;
 };
 

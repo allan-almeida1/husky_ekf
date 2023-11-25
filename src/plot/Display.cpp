@@ -113,6 +113,8 @@ void Display::handleEvents()
                 y_vec.clear();
                 x_est_vec.clear();
                 y_est_vec.clear();
+                x_ekf_vec.clear();
+                y_ekf_vec.clear();
                 xpos = 0;
                 ypos = 0;
                 theta = 0;
@@ -185,6 +187,22 @@ void Display::setEstimates(double x, double y, double theta)
 }
 
 /**
+ * @brief Set the EKF estimates of the robot
+ *
+ * @param x The x position of the robot
+ * @param y The y position of the robot
+ * @param theta The orientation of the robot
+ */
+void Display::setEKFEstimates(double x, double y, double theta)
+{
+    this->x_ekf = x * gridSize;
+    this->y_ekf = y * gridSize;
+    this->theta_ekf = theta;
+    x_ekf_vec.push_back(x_ekf);
+    y_ekf_vec.push_back(y_ekf);
+}
+
+/**
  * @brief Calculate the error between the ground truth and the dead reckoning
  */
 void Display::calculateError()
@@ -220,6 +238,7 @@ void Display::render()
     drawRobot();
     drawTrajectory();
     drawEstimate();
+    drawEKFEstimate();
 
     // Present the renderer
     SDL_RenderPresent(renderer);
@@ -481,6 +500,23 @@ void Display::drawEstimate()
         for (int i = 0; i < x_est_vec.size() - 1; i++)
         {
             SDL_RenderDrawLine(renderer, x_est_vec[i] + x0, y0 - y_est_vec[i], x_est_vec[i + 1] + x0, y0 - y_est_vec[i + 1]);
+        }
+    }
+}
+
+/**
+ * @brief Draw the EKF estimate of the robot on the display. The EKF estimate is a
+ * sequence of lines connecting the previous EKF estimates of the robot.
+ */
+void Display::drawEKFEstimate()
+{
+    // draw a trajectory
+    if (x_ekf_vec.size() >= 1)
+    {
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Green color
+        for (int i = 0; i < x_ekf_vec.size() - 1; i++)
+        {
+            SDL_RenderDrawLine(renderer, x_ekf_vec[i] + x0, y0 - y_ekf_vec[i], x_ekf_vec[i + 1] + x0, y0 - y_ekf_vec[i + 1]);
         }
     }
 }

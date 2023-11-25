@@ -39,6 +39,7 @@ public:
     void handleEvents();
     void setStates(double x, double y, double theta);
     void setEstimates(double x, double y, double theta);
+    void setEKFEstimates(double x, double y, double theta);
     void calculateError();
     void render();
     void clean();
@@ -58,6 +59,9 @@ private:
     double theta_est;              // The estimated orientation
     double xpos_est;               // The estimated x position
     double ypos_est;               // The estimated y position
+    double x_ekf;                  // The EKF estimated x position
+    double y_ekf;                  // The EKF estimated y position
+    double theta_ekf;              // The EKF estimated orientation
     double x_err_sum;              // The x error sum
     double y_err_sum;              // The y error sum
     double theta_err_sum;          // The theta error sum
@@ -71,6 +75,8 @@ private:
     std::vector<double> y_vec;     // The y position vector
     std::vector<double> x_est_vec; // The estimated x position vector
     std::vector<double> y_est_vec; // The estimated y position vector
+    std::vector<double> x_ekf_vec; // The EKF estimated x position vector
+    std::vector<double> y_ekf_vec; // The EKF estimated y position vector
     int gridSize;                  // The grid size
     std::string fontPath;          // The font path
     // Private methods
@@ -80,6 +86,7 @@ private:
     void drawPositionInfo();
     void drawTrajectory();
     void drawEstimate();
+    void drawEKFEstimate();
     void drawText(const char *text, int x_offset, int y_offset, int size, int align, bool greek, SDL_Color color);
 };
 

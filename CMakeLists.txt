@@ -216,5 +216,8 @@ include_directories(
 add_executable(dead_reckoning src/dead_reckoning/dead_reckoning.cpp)
 target_link_libraries(dead_reckoning ${catkin_LIBRARIES})
 
+add_executable(ekf_node src/kalman_filter/ekf_node.cpp src/kalman_filter/kalman_filter.cpp)
+target_link_libraries(ekf_node ${catkin_LIBRARIES})
+
 add_executable(plot src/plot/plot.cpp src/plot/Display.cpp)
 target_link_libraries(plot ${catkin_LIBRARIES} SDL2 SDL2_ttf)

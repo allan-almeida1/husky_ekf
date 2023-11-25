@@ -22,6 +22,7 @@
 #include "geometry_msgs/Twist.h"
 #include "gazebo_msgs/ModelStates.h"
 #include "sensor_msgs/JointState.h"
+#include "std_msgs/Bool.h"
 #include "tf/tf.h"
 #include <vector>
 #include <iostream>
@@ -33,10 +34,13 @@ class Controller
 public:
     Controller(ros::NodeHandle *nh)
     {
+        duration = ros::Duration(10); // Run for 10 seconds
         model_states_sub = nh->subscribe("/gazebo/model_states", 100, &Controller::modelStatesCallback, this);
         joint_states_sub = nh->subscribe("/joint_states", 100, &Controller::jointStatesCallback, this);
         cmd_vel_pub = nh->advertise<geometry_msgs::Twist>("/husky_velocity_controller/cmd_vel", 100);
         odom_pub = nh->advertise<geometry_msgs::Pose>("/dead_reckoning", 100);
+        stop_ekf_pub = nh->advertise<std_msgs::Bool>("/stop_ekf", 100);
+        est_vel_pub = nh->advertise<geometry_msgs::Twist>("/estimated_velocity", 100);
         timer = nh->createTimer(ros::Duration(0.1), &Controller::timerCallback, this);
         dt = 0.1;
         odom_timer = nh->createTimer(ros::Duration(dt), &Controller::odomCallback, this);
@@ -55,7 +59,7 @@ public:
         ros::Time current_time = ros::Time::now();
         ros::Duration elapsed_time = current_time - start_time;
         // Run for 10 seconds
-        if (elapsed_time.toSec() <= 60)
+        if (elapsed_time.toSec() <= duration.toSec())
         {
             current_gt_pos = msg->pose[1].position; // get ground truth current position
             gt_pos.push_back(current_gt_pos);       // append to gt_pos vector
@@ -75,6 +79,9 @@ public:
             cmd_vel_pub.publish(cmd_vel);
             saveToFile(gt_pos, gt_pos, gt_theta, gt_time, "/home/allan/catkin_ws/src/allan_husky/gt_data.json");
             saveToFile(odom_pos, odom_pos, odom_theta, odom_time, "/home/allan/catkin_ws/src/allan_husky/odom_data.json");
+            std_msgs::Bool stop_ekf;
+            stop_ekf.data = true;
+            stop_ekf_pub.publish(stop_ekf);
             ros::shutdown();
         }
     }
@@ -104,6 +111,7 @@ public:
         double w = (alpha * 0.5 / xicr) * (vr - vl);
         current_velocities.linear.x = v;
         current_velocities.angular.z = w;
+        est_vel_pub.publish(current_velocities);
     }
 
     /**
@@ -118,7 +126,7 @@ public:
 
 private:
     ros::Subscriber model_states_sub, joint_states_sub;
-    ros::Publisher cmd_vel_pub, odom_pub;
+    ros::Publisher cmd_vel_pub, odom_pub, est_vel_pub, stop_ekf_pub;
     ros::Time start_time;
     ros::Duration duration;
     ros::Timer timer, odom_timer;
