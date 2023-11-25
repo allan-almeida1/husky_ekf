@@ -23,10 +23,12 @@ public:
     void setMeasurements(sensor_msgs::Imu::ConstPtr measurements);
     void setStates(VectorXd states);
     void setStatesCovariance(MatrixXd states_covariance);
+    void setEstVel(double est_vel);
     VectorXd getStates();
     MatrixXd getStatesCovariance();
     Vector2d getMeasurements();
     Vector2d getMeasurementsCovariance();
+    double getEstVel();
     void setInitialized(bool initialized);
     void setRunning(bool running);
     bool isInitialized();
@@ -41,6 +43,7 @@ private:
     ros::Subscriber stop_ekf_sub;            // Subscriber for the /stop_ekf topic
     ros::Publisher est_pos_pub;              // Publisher for the /estimated_position topic
     sensor_msgs::Imu::ConstPtr measurements; // The measurements vector
+    double est_vel;                          // The estimated velocity (from the /estimated_velocity topic)
     ros::Timer timer;                        // The timer
     ros::Duration dt;                        // The time step
     bool initialized;                        // Is the filter initialized?

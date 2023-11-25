@@ -85,6 +85,16 @@ void KalmanFilter::setStatesCovariance(MatrixXd states_covariance)
     this->states_covariance = states_covariance;
 }
 
+/**
+ * @brief Setter for the estimated velocity.
+ *
+ * @param est_vel The estimated velocity.
+ */
+void KalmanFilter::setEstVel(double est_vel)
+{
+    this->est_vel = est_vel;
+}
+
 // ------------------- GETTERS ------------------- //
 
 /**
@@ -165,6 +175,16 @@ MatrixXd KalmanFilter::getStatesCovariance()
     return this->states_covariance;
 }
 
+/**
+ * @brief Getter for the estimated velocity.
+ *
+ * @return double The estimated velocity.
+ */
+double KalmanFilter::getEstVel()
+{
+    return this->est_vel;
+}
+
 /**************************************************/
 /***************** Private methods ****************/
 /**************************************************/
@@ -194,6 +214,11 @@ void KalmanFilter::estVelCallback(const geometry_msgs::Twist::ConstPtr &msg)
         ROS_INFO("Getting velocity estimated from the dead reckoning");
         states << 0.0, 0.0, 0.0, msg->linear.x, 0.0;
         setStates(states);
+    }
+    else
+    {
+        ROS_INFO("Updating the estimated velocity");
+        setEstVel(msg->linear.x);
     }
 }
 
@@ -234,14 +259,13 @@ void KalmanFilter::stopCallback(const std_msgs::Bool::ConstPtr &msg)
  */
 double KalmanFilter::normalizeAngle(double angle)
 {
-    angle = fmod(angle, (2.0 * M_PI));
-    if (angle <= -M_PI)
+    if (angle > M_PI)
     {
-        angle += (2.0 * M_PI);
+        angle -= 2 * M_PI;
     }
-    else if (angle > M_PI)
+    else if (angle < -M_PI)
     {
-        angle -= (2.0 * M_PI);
+        angle += 2 * M_PI;
     }
     return angle;
 }
@@ -326,7 +350,7 @@ void KalmanFilter::updateStep()
             0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, VEL_STD * VEL_STD, 0.0,
-            0.0, 0.0, 0.0, 0.0, accel_cov * 10;
+            0.0, 0.0, 0.0, 0.0, accel_cov * 5;
         setStatesCovariance(states_covariance);
 
         setInitialized(true);
@@ -338,16 +362,19 @@ void KalmanFilter::updateStep()
         MatrixXd states_covariance = getStatesCovariance();
         Vector2d measurements = getMeasurements();
         Vector2d measurements_covariance = getMeasurementsCovariance();
+        double est_vel = getEstVel();
 
         // Update states
-        MatrixXd H(1, 5);
-        H << 0.0, 0.0, 0.0, 0.0, 1.0;
+        MatrixXd H(2, 5);
+        H << 0.0, 0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 1.0;
 
-        MatrixXd R(1, 1);
-        R << measurements_covariance(1); // The measurement covariance matrix
+        MatrixXd R = MatrixXd::Zero(2, 2); // The measurement covariance matrix
+        R(0, 0) = VEL_STD * VEL_STD;
+        R(1, 1) = measurements_covariance(1) * 5;
 
-        VectorXd Z(1);
-        Z << measurements(1);                                   // The measured acceleration
+        VectorXd Z(2);
+        Z << est_vel, measurements(1);                          // The measurements vector
         VectorXd Y = Z - H * states;                            // The innovation vector
         MatrixXd S = H * states_covariance * H.transpose() + R; // The innovation covariance matrix
 
@@ -364,7 +391,7 @@ void KalmanFilter::updateStep()
         geometry_msgs::Twist estimated_position;
         estimated_position.linear.x = states(0);
         estimated_position.linear.y = states(1);
-        estimated_position.angular.z = states(2);
+        estimated_position.angular.z = normalizeAngle(states(2));
         est_pos_pub.publish(estimated_position);
     }
 }

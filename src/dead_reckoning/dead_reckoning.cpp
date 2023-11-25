@@ -34,7 +34,7 @@ class Controller
 public:
     Controller(ros::NodeHandle *nh)
     {
-        duration = ros::Duration(10); // Run for 10 seconds
+        duration = ros::Duration(50); // Run for n seconds
         model_states_sub = nh->subscribe("/gazebo/model_states", 100, &Controller::modelStatesCallback, this);
         joint_states_sub = nh->subscribe("/joint_states", 100, &Controller::jointStatesCallback, this);
         cmd_vel_pub = nh->advertise<geometry_msgs::Twist>("/husky_velocity_controller/cmd_vel", 100);

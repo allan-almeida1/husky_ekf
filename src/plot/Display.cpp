@@ -60,6 +60,9 @@ void Display::init(const char *title, int xpos, int ypos, int width, int height,
     {
         std::cout << "Subsystems Initialized!\n";
 
+        x_err_sum = 0;
+        y_err_sum = 0;
+        theta_err_sum = 0;
         displayWidth = width;
         displayHeight = height;
         x0 = displayWidth / 2;
@@ -207,17 +210,17 @@ void Display::setEKFEstimates(double x, double y, double theta)
  */
 void Display::calculateError()
 {
-    double error_x = xpos - xpos_est;
-    double error_y = ypos - ypos_est;
-    double error_theta = theta - theta_est;
-    if (x_est_vec.size() > 1)
+    double error_x = xpos - x_ekf;
+    double error_y = ypos - y_ekf;
+    double error_theta = this->theta - theta_ekf;
+    if (x_ekf_vec.size() > 1)
     {
         this->x_err_sum += error_x * error_x;
         this->y_err_sum += error_y * error_y;
         this->theta_err_sum += error_theta * error_theta;
-        this->x_rmse = sqrt(x_err_sum / x_est_vec.size());
-        this->y_rmse = sqrt(y_err_sum / y_est_vec.size());
-        this->theta_rmse = sqrt(theta_err_sum / y_est_vec.size());
+        this->x_rmse = sqrt(x_err_sum / x_ekf_vec.size());
+        this->y_rmse = sqrt(y_err_sum / y_ekf_vec.size());
+        this->theta_rmse = sqrt(theta_err_sum / x_ekf_vec.size());
     }
 }
 
@@ -334,16 +337,16 @@ void Display::drawLegend()
     // draw a rectangle
     SDL_Rect rect;
     rect.x = displayWidth - 200 - 30;
-    rect.y = displayHeight - 100 - 30;
+    rect.y = displayHeight - 150 - 30;
     rect.w = 200;
-    rect.h = 100;
+    rect.h = 150;
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White color
     SDL_RenderDrawRect(renderer, &rect);
 
     // draw squares to represent the legend color
     SDL_Rect rect1;
     rect1.x = displayWidth - 200 - 10;
-    rect1.y = displayHeight - 100 - 10;
+    rect1.y = displayHeight - 150 - 10;
     rect1.w = 20;
     rect1.h = 20;
     SDL_SetRenderDrawColor(renderer, 0, 100, 255, 255); // Blue color
@@ -351,15 +354,24 @@ void Display::drawLegend()
 
     SDL_Rect rect2;
     rect2.x = displayWidth - 200 - 10;
-    rect2.y = displayHeight - 100 - 10 + 40;
+    rect2.y = displayHeight - 150 - 10 + 40;
     rect2.w = 20;
     rect2.h = 20;
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red color
     SDL_RenderFillRect(renderer, &rect2);
 
+    SDL_Rect rect3;
+    rect3.x = displayWidth - 200 - 10;
+    rect3.y = displayHeight - 150 - 10 + 80;
+    rect3.w = 20;
+    rect3.h = 20;
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Green color
+    SDL_RenderFillRect(renderer, &rect3);
+
     // draw text
-    this->drawText("Ground Truth", 70, 88, 18);
-    this->drawText("Dead Reckoning", 45, 48, 18);
+    this->drawText("Ground Truth", 70, 88 + 50, 18);
+    this->drawText("Dead Reckoning", 45, 48 + 50, 18);
+    this->drawText("EKF", 144, 8 + 50, 18);
 }
 
 /**
@@ -408,11 +420,32 @@ void Display::drawPositionInfo()
     this->drawText("m", 130, 180, 20, ALIGN_LEFT);
     this->drawText("rad", 130, 200, 20, ALIGN_LEFT);
 
-    this->drawText("Erro RMSE", 20, 240, 20, ALIGN_LEFT);
-    this->drawText("x (RMSE) :", 20, 270, 20, ALIGN_LEFT);
-    this->drawText("y (RMSE) :", 20, 290, 20, ALIGN_LEFT);
-    this->drawText("q", 20, 316, 23, ALIGN_LEFT, true);
-    this->drawText(" (RMSE) :", 30, 310, 20, ALIGN_LEFT);
+    double y_offset2 = 110;
+
+    this->drawText("Extended Kalman Filter", 20, 130 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText("x :", 20, 160 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText("y :", 20, 180 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText("q", 20, 206 + y_offset2, 23, ALIGN_LEFT, true);
+    std::stringstream x_ekf_fixed, y_ekf_fixed, theta_ekf_fixed;
+    x_ekf_fixed << std::fixed << std::setprecision(3) << x_ekf / gridSize;
+    y_ekf_fixed << std::fixed << std::setprecision(3) << y_ekf / gridSize;
+    theta_ekf_fixed << std::fixed << std::setprecision(3) << theta_ekf;
+    std::string x_ekf_str = x_ekf_fixed.str();
+    std::string y_ekf_str = y_ekf_fixed.str();
+    std::string theta_ekf_str = theta_ekf_fixed.str();
+    this->drawText(x_ekf_str.c_str(), 60, 160 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText(y_ekf_str.c_str(), 60, 180 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText(theta_ekf_str.c_str(), 60, 200 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText("m", 130, 160 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText("m", 130, 180 + y_offset2, 20, ALIGN_LEFT);
+    this->drawText("rad", 130, 200 + y_offset2, 20, ALIGN_LEFT);
+
+    double y_offset = 110;
+    this->drawText("Erro RMSE", 20, 240 + y_offset, 20, ALIGN_LEFT);
+    this->drawText("x (RMSE) :", 20, 270 + y_offset, 20, ALIGN_LEFT);
+    this->drawText("y (RMSE) :", 20, 290 + y_offset, 20, ALIGN_LEFT);
+    this->drawText("q", 20, 316 + y_offset, 23, ALIGN_LEFT, true);
+    this->drawText(" (RMSE) :", 30, 310 + y_offset, 20, ALIGN_LEFT);
     std::stringstream x_rmse_fixed, y_rmse_fixed, theta_rmse_fixed;
     x_rmse_fixed << std::fixed << std::setprecision(3) << x_rmse / gridSize;
     y_rmse_fixed << std::fixed << std::setprecision(3) << y_rmse / gridSize;
@@ -420,12 +453,12 @@ void Display::drawPositionInfo()
     std::string x_rmse_str = x_rmse_fixed.str();
     std::string y_rmse_str = y_rmse_fixed.str();
     std::string theta_rmse_str = theta_rmse_fixed.str();
-    this->drawText(x_rmse_str.c_str(), 120, 270, 20, ALIGN_LEFT);
-    this->drawText(y_rmse_str.c_str(), 120, 290, 20, ALIGN_LEFT);
-    this->drawText(theta_rmse_str.c_str(), 120, 310, 20, ALIGN_LEFT);
-    this->drawText("m", 190, 270, 20, ALIGN_LEFT);
-    this->drawText("m", 190, 290, 20, ALIGN_LEFT);
-    this->drawText("rad", 190, 310, 20, ALIGN_LEFT);
+    this->drawText(x_rmse_str.c_str(), 120, 270 + y_offset, 20, ALIGN_LEFT);
+    this->drawText(y_rmse_str.c_str(), 120, 290 + y_offset, 20, ALIGN_LEFT);
+    this->drawText(theta_rmse_str.c_str(), 120, 310 + y_offset, 20, ALIGN_LEFT);
+    this->drawText("m", 190, 270 + y_offset, 20, ALIGN_LEFT);
+    this->drawText("m", 190, 290 + y_offset, 20, ALIGN_LEFT);
+    this->drawText("rad", 190, 310 + y_offset, 20, ALIGN_LEFT);
 
     this->drawText("Pressione [E] para limpar o trajeto", 20, displayHeight - 90, 18, ALIGN_LEFT, false, {0, 255, 0});
     this->drawText("Pressione [C] para centralizar o mapa", 20, displayHeight - 65, 18, ALIGN_LEFT, false, {0, 255, 0});
