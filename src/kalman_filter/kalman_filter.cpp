@@ -13,7 +13,7 @@
  */
 KalmanFilter::KalmanFilter(ros::NodeHandle *nh)
 {
-    this->dt = ros::Duration(0.1);
+    this->dt = ros::Duration(0.01);
     this->initialized = false;
     this->running = false;
     this->states = VectorXd(5);
@@ -217,7 +217,6 @@ void KalmanFilter::estVelCallback(const geometry_msgs::Twist::ConstPtr &msg)
     }
     else
     {
-        ROS_INFO("Updating the estimated velocity");
         setEstVel(msg->linear.x);
     }
 }
@@ -231,7 +230,7 @@ void KalmanFilter::timerCallback(const ros::TimerEvent &event)
 {
     if (isRunning())
     {
-        predictionStep(dt.toSec());
+        predictionStep(this->dt.toSec());
         updateStep();
     }
 }
@@ -316,7 +315,7 @@ void KalmanFilter::predictionStep(double dt)
         Q(1, 1) = POS_STD * POS_STD;
         Q(2, 2) = THETA_STD * THETA_STD;
         Q(3, 3) = VEL_STD * VEL_STD;
-        Q(4, 4) = measurements_covariance(1) * 10;
+        Q(4, 4) = measurements_covariance(1) * 500;
 
         // here it's breaking
         states_covariance = F * states_covariance * F.transpose() + Q;
@@ -350,7 +349,7 @@ void KalmanFilter::updateStep()
             0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, VEL_STD * VEL_STD, 0.0,
-            0.0, 0.0, 0.0, 0.0, accel_cov * 5;
+            0.0, 0.0, 0.0, 0.0, accel_cov * 500;
         setStatesCovariance(states_covariance);
 
         setInitialized(true);
@@ -371,7 +370,7 @@ void KalmanFilter::updateStep()
 
         MatrixXd R = MatrixXd::Zero(2, 2); // The measurement covariance matrix
         R(0, 0) = VEL_STD * VEL_STD;
-        R(1, 1) = measurements_covariance(1) * 5;
+        R(1, 1) = measurements_covariance(1) * 100;
 
         VectorXd Z(2);
         Z << est_vel, measurements(1);                          // The measurements vector
@@ -392,6 +391,9 @@ void KalmanFilter::updateStep()
         estimated_position.linear.x = states(0);
         estimated_position.linear.y = states(1);
         estimated_position.angular.z = normalizeAngle(states(2));
+        // ROS_INFO("Posision covariance: x = %f | y = %f | theta = %f", sqrt(states_covariance(0, 0)),
+        //          sqrt(states_covariance(1, 1)),
+        //          sqrt(states_covariance(2, 2)));
         est_pos_pub.publish(estimated_position);
     }
 }

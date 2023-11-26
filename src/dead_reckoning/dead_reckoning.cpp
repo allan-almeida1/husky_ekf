@@ -35,6 +35,8 @@ public:
     Controller(ros::NodeHandle *nh)
     {
         duration = ros::Duration(50); // Run for n seconds
+        cmd_vel.linear.x = 0.2;
+        cmd_vel.angular.z = 0.2;
         model_states_sub = nh->subscribe("/gazebo/model_states", 100, &Controller::modelStatesCallback, this);
         joint_states_sub = nh->subscribe("/joint_states", 100, &Controller::jointStatesCallback, this);
         cmd_vel_pub = nh->advertise<geometry_msgs::Twist>("/husky_velocity_controller/cmd_vel", 100);
@@ -61,6 +63,14 @@ public:
         // Run for 10 seconds
         if (elapsed_time.toSec() <= duration.toSec())
         {
+            if (elapsed_time.toSec() > 20 && elapsed_time.toSec() < 30)
+            {
+                cmd_vel.angular.z = 0.2;
+            }
+            else if (elapsed_time.toSec() > 30)
+            {
+                cmd_vel.angular.z = 0.2;
+            }
             current_gt_pos = msg->pose[1].position; // get ground truth current position
             gt_pos.push_back(current_gt_pos);       // append to gt_pos vector
             gt_time.push_back(ros::Time::now());    // append current simulation time
@@ -98,11 +108,10 @@ public:
      */
     void timerCallback(const ros::TimerEvent &event)
     {
-        geometry_msgs::Twist cmd_vel;
-        cmd_vel.linear.x = 0.2;
-        cmd_vel.angular.z = 0.2;
-        // current_velocities = cmd_vel;
+
+        current_velocities = cmd_vel;
         cmd_vel_pub.publish(cmd_vel);
+
         double vl = cmd_vel.linear.x - (0.545 * cmd_vel.angular.z) / 2;
         double vr = cmd_vel.linear.x + (0.545 * cmd_vel.angular.z) / 2;
         double alpha = 0.98;
@@ -111,6 +120,7 @@ public:
         double w = (alpha * 0.5 / xicr) * (vr - vl);
         current_velocities.linear.x = v;
         current_velocities.angular.z = w;
+
         est_vel_pub.publish(current_velocities);
     }
 
@@ -135,7 +145,7 @@ private:
     std::vector<ros::Time> gt_time, odom_time;
     std::vector<sensor_msgs::JointState> joint_states;
     geometry_msgs::Point current_gt_pos;
-    geometry_msgs::Twist current_velocities;
+    geometry_msgs::Twist current_velocities, cmd_vel;
     double current_gt_theta;
     double dt;
     bool reset;

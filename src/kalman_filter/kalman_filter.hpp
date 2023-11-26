@@ -51,7 +51,7 @@ private:
     VectorXd states;                         // The states vector
     MatrixXd states_covariance;              // The states covariance matrix
     const double POS_STD = 0.1;              // The position standard deviation
-    const double VEL_STD = 0.05;             // The velocity standard deviation
+    const double VEL_STD = 0.1;              // The velocity standard deviation
     const double THETA_STD = 0.1;            // The orientation standard deviation
     // Private methods
     void measurementsCallback(const sensor_msgs::Imu::ConstPtr &msg);
