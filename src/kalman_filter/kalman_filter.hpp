@@ -1,3 +1,20 @@
+/**
+ * @file kalman_filter.hpp
+ *
+ * @brief This file is part of the `efk_node` node and contains the `KalmanFilter` class.
+ *
+ * @details This file contains the `KalmanFilter` class, which is used to implement the Extended Kalman Filter (EKF)
+ * by fusing state estimates from the kinematic model and the IMU on the Husky UGV robot
+ *
+ * @version 1.0.0
+ *
+ * @date 2023-11-29
+ *
+ * @author Allan Souza Almeida
+ *
+ * @note This file is part of the `husky_ekf` package.
+ */
+
 #ifndef KalmanFilter_hpp
 #define KalmanFilter_hpp
 #include "ros/ros.h"

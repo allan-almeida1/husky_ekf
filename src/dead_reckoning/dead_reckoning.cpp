@@ -15,7 +15,7 @@
  *
  * @author Allan Souza Almeida
  *
- * @note This file is part of the `allan_husky` package.
+ * @note This file is part of the `husky_ekf` package.
  */
 
 #include "ros/ros.h"
@@ -34,7 +34,8 @@ class Controller
 public:
     Controller(ros::NodeHandle *nh)
     {
-        duration = ros::Duration(50); // Run for n seconds
+        useCorrectedModel = false;   // Use the corrected model (symmetric matrix)
+        duration = ros::Duration(3); // Run for n seconds
         cmd_vel.linear.x = 0.2;
         cmd_vel.angular.z = 0.2;
         model_states_sub = nh->subscribe("/gazebo/model_states", 100, &Controller::modelStatesCallback, this);
@@ -63,14 +64,6 @@ public:
         // Run for 10 seconds
         if (elapsed_time.toSec() <= duration.toSec())
         {
-            if (elapsed_time.toSec() > 20 && elapsed_time.toSec() < 30)
-            {
-                cmd_vel.angular.z = 0.2;
-            }
-            else if (elapsed_time.toSec() > 30)
-            {
-                cmd_vel.angular.z = 0.2;
-            }
             current_gt_pos = msg->pose[1].position; // get ground truth current position
             gt_pos.push_back(current_gt_pos);       // append to gt_pos vector
             gt_time.push_back(ros::Time::now());    // append current simulation time
@@ -87,8 +80,8 @@ public:
             cmd_vel.linear.x = 0.0;
             cmd_vel.angular.z = 0.0;
             cmd_vel_pub.publish(cmd_vel);
-            saveToFile(gt_pos, gt_pos, gt_theta, gt_time, "/home/allan/catkin_ws/src/allan_husky/gt_data.json");
-            saveToFile(odom_pos, odom_pos, odom_theta, odom_time, "/home/allan/catkin_ws/src/allan_husky/odom_data.json");
+            saveToFile(gt_pos, gt_pos, gt_theta, gt_time, "/home/allan/catkin_ws/src/husky_ekf/gt_data.json");
+            saveToFile(odom_pos, odom_pos, odom_theta, odom_time, "/home/allan/catkin_ws/src/husky_ekf/odom_data.json");
             std_msgs::Bool stop_ekf;
             stop_ekf.data = true;
             stop_ekf_pub.publish(stop_ekf);
@@ -111,16 +104,17 @@ public:
 
         current_velocities = cmd_vel;
         cmd_vel_pub.publish(cmd_vel);
-
-        double vl = cmd_vel.linear.x - (0.545 * cmd_vel.angular.z) / 2;
-        double vr = cmd_vel.linear.x + (0.545 * cmd_vel.angular.z) / 2;
-        double alpha = 0.98;
-        double xicr = 0.49;
-        double v = (alpha / 2) * (vl + vr);
-        double w = (alpha * 0.5 / xicr) * (vr - vl);
-        current_velocities.linear.x = v;
-        current_velocities.angular.z = w;
-
+        if (useCorrectedModel)
+        {
+            double vl = cmd_vel.linear.x - (0.545 * cmd_vel.angular.z) / 2;
+            double vr = cmd_vel.linear.x + (0.545 * cmd_vel.angular.z) / 2;
+            double alpha = 0.98;
+            double xicr = 0.49;
+            double v = (alpha / 2) * (vl + vr);
+            double w = (alpha * 0.5 / xicr) * (vr - vl);
+            current_velocities.linear.x = v;
+            current_velocities.angular.z = w;
+        }
         est_vel_pub.publish(current_velocities);
     }
 
@@ -149,6 +143,7 @@ private:
     double current_gt_theta;
     double dt;
     bool reset;
+    bool useCorrectedModel;
 
     /**
      * @brief Save the ground truth and odometry data to json files
@@ -156,7 +151,7 @@ private:
     // void saveToFile()
     // {
     //     std::ofstream gt_file, odom_file;
-    //     gt_file.open("/home/allan/catkin_ws/src/allan_husky/gt_data.json");
+    //     gt_file.open("/home/allan/catkin_ws/src/husky_ekf/gt_data.json");
     //     if (gt_file.is_open())
     //     {
     //         gt_file << "[";
@@ -176,7 +171,7 @@ private:
     //         gt_file.close();
     //     }
 
-    //     odom_file.open("/home/allan/catkin_ws/src/allan_husky/odom_data.json");
+    //     odom_file.open("/home/allan/catkin_ws/src/husky_ekf/odom_data.json");
     //     if (odom_file.is_open())
     //     {
     //         odom_file << "[";
@@ -198,7 +193,7 @@ private:
     //     }
 
     //     std::ofstream joint_file;
-    //     joint_file.open("/home/allan/catkin_ws/src/allan_husky/joint_data.json");
+    //     joint_file.open("/home/allan/catkin_ws/src/husky_ekf/joint_data.json");
     //     if (joint_file.is_open())
     //     {
     //         joint_file << "[";

@@ -1,4 +1,4 @@
-#!/home/allan/catkin_ws/src/allan_husky/myvenv/bin/python3
+#!/home/allan/catkin_ws/src/husky_ekf/myvenv/bin/python3
 import rospy
 import tensorflow as tf
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2

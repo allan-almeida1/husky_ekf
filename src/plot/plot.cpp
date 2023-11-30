@@ -12,7 +12,7 @@
  *
  * @author Allan Souza Almeida
  *
- * @note This file is part of the `allan_husky` package.
+ * @note This file is part of the `husky_ekf` package.
  */
 
 #include "ros/ros.h"

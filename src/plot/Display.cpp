@@ -14,7 +14,7 @@
  *
  * @author Allan Souza Almeida
  *
- * @note This file is part of the `allan_husky` package.
+ * @note This file is part of the `husky_ekf` package.
  */
 
 #include "Display.hpp"
@@ -28,7 +28,7 @@ Display::Display()
     xpos_est = 0;
     ypos_est = 0;
     gridSize = 130;
-    fontPath = ros::package::getPath("allan_husky") + "/src/plot/";
+    fontPath = ros::package::getPath("husky_ekf") + "/src/plot/";
     isBeingDragged = false;
 }
 Display::~Display() {}
